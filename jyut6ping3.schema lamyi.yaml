@@ -1,0 +1,249 @@
+# Rime schema
+# encoding: utf-8
+
+schema:
+  schema_id: jyut6ping3
+  name: 粵語拼音
+  version: "2020.11.05"
+  author:
+    - 藍兒
+  description: |
+    採用香港語言學學會粵語拼音方案
+    https://www.lshk.org/jyutping
+    兼容教育學院拼音方案
+
+    提供四種反查方案，[`]鍵可用倉頡、粵語兩分、普拼或筆劃任一種編碼反查粵拼，[`C]鍵單獨用倉頡反查，[`L]鍵單獨用粵語兩分反查，[`P]鍵單獨用普拼反查，[`B]鍵單獨用筆劃反查
+    聲調輸入 q平 v上 x去 （雙擊為陽調）
+    PC上按Ctrl+Enter可將拼音上屏，按Ctrl+Shift+Enter可將候選項提示拼音上屏
+
+  dependencies:
+    - cangjie5
+    - luna_pinyin
+    - loengfan
+    - stroke
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 英文 ]
+  - name: full_shape
+    states: [ 半角, 全角 ]
+  - name: simplification
+    states: [ 傳統, 简体 ]
+  - name: extended_charset
+    states: [ 常用, 增廣 ]
+    reset: 1
+  - name: ascii_punct
+    states: [ 。，, ．， ]
+  - name: emoji_suggestion
+    states: [ 〇, 😊 ]
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - affix_segmentor@cangjie5
+    - affix_segmentor@luna_pinyin
+    - affix_segmentor@loengfan
+    - affix_segmentor@stroke
+    - affix_segmentor@reverse_lookup
+    - affix_segmentor@cangjie5_lookup
+    - affix_segmentor@luna_pinyin_lookup
+    - affix_segmentor@loengfan_lookup
+    - affix_segmentor@stroke_lookup
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - script_translator@cangjie5
+    - script_translator@luna_pinyin
+    - script_translator@loengfan
+    - script_translator@stroke
+    - reverse_lookup_translator@cangjie5_lookup
+    - reverse_lookup_translator@luna_pinyin_lookup
+    - reverse_lookup_translator@loengfan_lookup
+    - reverse_lookup_translator@stroke_lookup
+    - punct_translator
+    - script_translator
+    - reverse_lookup_translator
+  filters:
+    - simplifier
+    - simplifier@emoji_suggestion
+    - uniquifier
+    - reverse_lookup_filter@cangjie5_reverse_lookup
+    - reverse_lookup_filter@luna_pinyin_reverse_lookup
+    - reverse_lookup_filter@loengfan_reverse_lookup
+    - reverse_lookup_filter@stroke_reverse_lookup
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+  algebra:
+    - derive/([123456])//         # 忽略声调
+    - derive/^([aeiou])/q$1/      # 增加 q 表示喉塞
+    - xform/1/q/                  # 陰平
+    - xform/4/qq/                 # 陽平
+    - xform/2/v/                  # 陰上
+    - xform/5/vv/                 # 陽上
+    - xform/3/x/                  # 陰去
+    - xform/6/xx/                 # 陽去
+    - derive/^jy?([aeiour])/y$1/  # 容錯 je -> ye, jyu -> yu
+    - derive/yu/y/                # 教院式 jyu -> jy，yu -> y
+    - derive/eoi$/oey/            # 教院式 eoi <-> oey
+    - derive/eoi$/eoy/            # 容錯
+    - derive/aa$/r/               # 容錯 aa -> r
+    - derive/aa$/a/               # 容錯 aa -> a
+    - abbrev/^([a-z]).+$/$1/      # 首字母簡拼
+    - derive/^z/dz/               # 教院式
+    - derive/^c/ts/               # 教院式
+    - abbrev/^(ng).+$/$1/         # 聲母簡拼
+    - abbrev/^([gk]w).+$/$1/      # 聲母簡拼
+    - abbrev/^(dz).+$/$1/         # 聲母簡拼
+    - abbrev/^(ts).+$/$1/         # 聲母簡拼
+    - derive/oe(ng|k)$/eo$1/      # 教院式 oe(ng|k) -> eo(ng|k)
+    - derive/eo([int])$/oe$1/     # 容錯 eo(int) -> oe(int)
+    - derive/([aeiou])ng$/$1gn/   # 糾錯 [aeiou]ng -> [aeiou]gn
+    - derive/([aeiou])ng$/$1mg/   # 糾錯 [aeiou]ng -> [aeiou]mg
+
+menu:
+  alternative_select_keys: "123456789"
+  page_size: 7                    # 候選項數目
+
+
+translator:
+  dictionary: jyut6ping3
+  spelling_hints: 20              # 候選字提示拼音的數目，橫排顯示時建議設置為0
+  preedit_format:
+    - xform/([aeioumngptk])qq/${1}4/
+    - xform/([aeioumngptk])q/${1}1/
+    - xform/([aeioumngptk])vv/${1}5/
+    - xform/([aeioumngptk])v/${1}2/
+    - xform/([aeioumngptk])xx/${1}6/
+    - xform/([aeioumngptk])x/${1}3/
+#  comment_format:
+#    - xform/^/(/
+#    - xform/$/)/
+
+reverse_lookup:
+  tag: reverse_lookup
+  prefix: "`"
+  suffix: ;
+  tips: 〔倉頡/普拼/兩分/筆劃〕
+  closing_tips: 〔粵拼〕
+  extra_tags:
+    - cangjie5_lookup
+    - loengfan_lookup  
+    - luna_pinyin_lookup
+    - stroke_lookup
+
+cangjie5:
+  tag: cangjie5
+  dictionary: cangjie5
+  prefix: "`C"
+  suffix: ";"
+  tips: 〔倉頡〕
+  closing_tips: 〔粵拼〕
+  initial_quality: 100000      	  # 調整該編譯器出字優先度
+
+luna_pinyin:
+  tag: luna_pinyin
+  dictionary: luna_pinyin
+  prefix: "`P"
+  suffix: ";"
+  preedit_format:
+    - xform/([nl])v/$1ü/
+    - xform/([nl])ue/$1üe/
+    - xform/([jqxy])v/$1u/
+  tips: 〔普拼〕
+  closing_tips: 〔粵拼〕
+  initial_quality: 50000	      # 調整該編譯器出字優先度
+
+loengfan:
+  tag: loengfan
+  dictionary: loengfan
+  prefix: "`L"
+  suffix: ";"
+  tips: 〔兩分〕
+  closing_tips: 〔粵拼〕
+  initial_quality: 5000      	  # 調整該編譯器出字優先度
+
+stroke:
+  tag: stroke
+  dictionary: stroke
+  prefix: "`B"
+  suffix: ";"
+  preedit_format:
+    - xlit/wspnz/一丨丿丶乙/
+  tips: 〔筆劃〕
+  closing_tips: 〔粵拼〕
+  initial_quality: 1000	          # 調整該編譯器出字優先度
+
+cangjie5_lookup:
+  tag: cangjie5_lookup
+  dictionary: cangjie5
+  prefix: "`C"
+  suffix: ";"
+  tips: 〔倉頡〕
+  comment_format:
+    - xform/^/〔/
+    - xform/$/〕/
+
+luna_pinyin_lookup:
+  tag: luna_pinyin_lookup
+  dictionary: luna_pinyin
+  prefix: "`P"
+  suffix: ";"
+  tips: 〔普拼〕
+  comment_format:
+    - xform/^/〔/
+    - xform/$/〕/
+
+loengfan_lookup:
+  tag: loengfan_lookup
+  dictionary: loengfan
+  prefix: "`L"
+  suffix: ";"
+  tips: 〔兩分〕
+  comment_format:
+    - xform/^/〔/
+    - xform/$/〕/
+
+stroke_lookup:
+  tag: stroke_lookup
+  dictionary: stroke
+  prefix: "`B"
+  suffix: ";"
+  tips: 〔筆劃｜橫w豎s撇p捺n折z〕
+  comment_format:
+    - xform/^/〔/
+    - xform/$/〕/
+
+emoji_suggestion:
+  opencc_config: emoji.json
+  option_name: emoji_suggestion
+  tips: all
+
+punctuator:
+  import_preset: symbols
+
+key_binder:
+  import_preset: default
+
+recognizer:
+  import_preset: default
+  patterns:
+    punct: "^/([0-9]0?|[a-z]+)$"
+    reverse_lookup: "`[a-z]*;?$"
+    cangjie5_lookup: "^`C[a-z]*;?$"
+    luna_pinyin_lookup: "^`P[a-z]*;?$"
+    loengfan_lookup: "^`L[a-z]*;?$"
+    stroke_lookup: "^`B[a-z]*;?$"
